@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "unsupervised-speaker-diarization"
+version = "0.1.0"
+description = ""
+authors = ["yuta0306 <you-2001-3-6@ezweb.ne.jp>"]
+readme = "README.md"
+packages = [{include = "unsupervised_speaker_diarization"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
