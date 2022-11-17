@@ -53,7 +53,7 @@ class SpeechDetection:
 if __name__ == "__main__":
     import librosa
 
-    audio, sr = librosa.load("data/_LIDbvp1NYw.mp3", sr=16_000)
+    audio, sr = librosa.load("data/T0iOKreqf2k.mp3", sr=16_000)
     print(audio.shape)
     model = SpeechDetection()
     output = model(audio)
