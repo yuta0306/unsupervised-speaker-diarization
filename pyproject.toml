@@ -15,6 +15,12 @@ tensorflow-hub = "^0.12.0"
 numpy = "^1.23.4"
 transformers = "^4.24.0"
 PySoundFile = "^0.9.0.post1"
+Cython = "^0.29.32"
+scipy = "^1.9.3"
+espnet = {path = "espnet", develop = true}
+espnet-model-zoo = "^0.1.7"
+ci-sdr = {path = "ci_sdr", develop = true}
+torchaudio = "0.12.0"
 
 
 [tool.poetry.group.dev.dependencies]
