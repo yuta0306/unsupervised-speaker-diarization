@@ -21,6 +21,7 @@ espnet = {path = "espnet", develop = true}
 espnet-model-zoo = "^0.1.7"
 ci-sdr = {path = "ci_sdr", develop = true}
 torchaudio = "0.12.0"
+speechbrain = "^0.5.13"
 
 
 [tool.poetry.group.dev.dependencies]

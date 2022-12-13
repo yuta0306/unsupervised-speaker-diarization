@@ -130,3 +130,5 @@ dmypy.json
 
 data/
 runs/
+
+pretrained_models/
