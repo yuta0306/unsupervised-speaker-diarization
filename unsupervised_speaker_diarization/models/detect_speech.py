@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 import numpy as np
 import tensorflow as tf
@@ -49,11 +50,40 @@ class SpeechDetection:
 
         return array
 
+    @staticmethod
+    def mask_waveform(
+        waveform: np.ndarray,
+        scores: np.ndarray,
+        type_: str,
+        except_type: Optional[int] = None,  # Music 132
+        threshold: float = 0.01,
+        sr: int = 16_000,
+    ):
+        idx = 0 if type_ == "speech" else 13
+        array = np.zeros(scores.shape[0], dtype=np.int16)
+        mask = scores[:, idx] >= threshold
+        array[mask] = 1
+
+        if except_type is not None:
+            array[scores[:, except_type] > scores[:, idx]] = 0
+
+        mask_waveform = []
+        for i, mask in enumerate(array):
+            if i == 0:
+                mask_waveform += [mask] * int(sr * 0.960)
+            else:
+                mask_waveform += [mask] * int(sr * 0.480)
+        mask = np.array(mask_waveform).astype(bool)
+
+        waveform[~mask[: waveform.shape[0]]] = 0
+
+        return waveform
+
 
 if __name__ == "__main__":
     import librosa
 
-    audio, sr = librosa.load("data/T0iOKreqf2k.mp3", sr=16_000)
+    audio, sr = librosa.load("data/_LIDbvp1NYw.mp3", sr=16_000)
     print(audio.shape)
     model = SpeechDetection()
     output = model(audio)
@@ -62,7 +92,12 @@ if __name__ == "__main__":
     # print(output.embeddings.shape)
     # print(output.spectrograms.shape)
 
-    array = model.masked_array(output.scores, "speech", threshold=0.01)
+    array = model.masked_array(output.scores, "speech", threshold=0.005)
     print("speech:", array)
-    array = model.masked_array(output.scores, "laughter", threshold=0.01)
+    array = model.masked_array(output.scores, "laughter", threshold=0.005)
     print("laughter:", array)
+
+    waveform = model.mask_waveform(
+        audio, output.scores, "speech", threshold=0.005, sr=sr
+    )
+    print(waveform)

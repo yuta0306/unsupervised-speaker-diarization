@@ -22,6 +22,8 @@ espnet-model-zoo = "^0.1.7"
 ci-sdr = {path = "ci_sdr", develop = true}
 torchaudio = "0.12.0"
 speechbrain = "^0.5.13"
+"pyannote.audio" = "^2.1.1"
+python-dotenv = "^0.21.0"
 
 
 [tool.poetry.group.dev.dependencies]
