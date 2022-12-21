@@ -70,9 +70,9 @@ class SpeechDetection:
         mask_waveform = []
         for i, mask in enumerate(array):
             if i == 0:
-                mask_waveform += [mask] * int(sr * 0.960)
+                mask_waveform.extend([mask] * int(sr * 0.960))
             else:
-                mask_waveform += [mask] * int(sr * 0.480)
+                mask_waveform.extend([mask] * int(sr * 0.480))
         mask = np.array(mask_waveform).astype(bool)
 
         waveform[~mask[: waveform.shape[0]]] = 0
