@@ -1,0 +1,3 @@
+[submodule "unsupervised_speaker_diarization/VGGVox-PyTorch"]
+	path = unsupervised_speaker_diarization/VGGVox-PyTorch
+	url = https://github.com/Derpimort/VGGVox-PyTorch.git
