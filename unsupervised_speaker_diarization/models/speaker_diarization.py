@@ -104,6 +104,7 @@ class SpeakerDiarization(nn.Module):
 
         for turn, _, speaker in diarization.itertracks(yield_label=True):
             print(f"start={turn.start:.1f}s stop={turn.end:.1f}s speaker_{speaker}")
+            sf.write(f"{turn.start:.1f}-{turn.end:.1f}-speaker{speaker}.wav", data[int(sr * turn.start):int(sr * turn.end)], samplerate=sample_rate)
 
 
 if __name__ == "__main__":
@@ -122,4 +123,4 @@ if __name__ == "__main__":
         speech_detection=True,
     )
 
-    diarization("data/_LIDbvp1NYw.mp3")
+    diarization("data/_LIDbvp1NYw.mp3", min_speakers=2)

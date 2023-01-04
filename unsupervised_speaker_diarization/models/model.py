@@ -38,14 +38,14 @@ class DiarizationModel(nn.Module):
         embedding: torch.Tensor
             `(embedding_dim, sequence_length)`
         """
-        embedding = embedding.to(self.device)
+        embedding = embedding.to(self.device)  # (time, dim)
         i = 0
         embedding_basis_matrix = nn.Parameter(
-            torch.randn((embedding.size(0), k), device=self.device), requires_grad=True
-        )
-        activation_matrix = nn.Parameter(
             torch.randn((k, embedding.size(1)), device=self.device), requires_grad=True
-        )
+        )  # (spk, dim)
+        activation_matrix = nn.Parameter(
+            torch.randn((k, embedding.size(0)), device=self.device), requires_grad=True
+        )  # (spk, time)
         optimizer_emb = optim.Adam(params=[embedding_basis_matrix], lr=self.lr)
         optimizer_act = optim.Adam(params=[activation_matrix], lr=self.lr)
 
@@ -60,7 +60,7 @@ class DiarizationModel(nn.Module):
             # compute loss
             loss = (
                 torch.linalg.norm(
-                    embedding - torch.matmul(embedding_basis_matrix, activation_matrix.detach()), ord=1
+                    embedding - torch.matmul(activation_matrix.detach().T, embedding_basis_matrix), ord=1
                 )
                 + self.lambda1 * torch.linalg.norm(embedding_basis_matrix, ord=1)
                 + self.lambda2 * torch.linalg.norm(activation_matrix.detach(), ord=1)
@@ -80,7 +80,7 @@ class DiarizationModel(nn.Module):
             # recompute loss
             loss = (
                 torch.linalg.norm(
-                    embedding - torch.matmul(embedding_basis_matrix.detach(), activation_matrix), ord=1
+                    embedding - torch.matmul(activation_matrix.T, embedding_basis_matrix.detach()), ord=1
                 )
                 + self.lambda1 * torch.linalg.norm(embedding_basis_matrix.detach(), ord=1)
                 + self.lambda2 * torch.linalg.norm(activation_matrix, ord=1)
@@ -130,9 +130,58 @@ class DiarizationModel(nn.Module):
 
 
 if __name__ == "__main__":
-    model = DiarizationModel(device="cuda")
-    embedding = torch.randn((512, 100))
+    from unsupervised_speaker_diarization.models.detect_speech import SpeechDetection
+    import librosa
+    import warnings
+    import pandas as pd
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import soundfile as sf
+    warnings.simplefilter("ignore")
+
+    # pre process
+    detector = SpeechDetection()
+    audio, sr = librosa.load("data/T0iOKreqf2k.mp3", sr=16_000)
+    output = detector(audio)
+    mask = detector.masked_array(output.scores, type_="speech")
+    embedding = output.embeddings
+    embedding[~mask.astype(bool)] = 0
+
+    
+    model = DiarizationModel(lr=1e-4, device="cuda")
+    embedding = torch.from_numpy(embedding)
     output = model(embedding, k=3)
-    print(output.embedding_basis_matrix)
-    print(output.activation_matrix)
+    # print(output.embedding_basis_matrix)
     print(output.loss)
+
+    # post process
+    final_act = output.activation_matrix
+    final_act[:, ~mask.astype(bool)] = 0
+    final_act_shift = np.concatenate([final_act[:, :1], final_act[:, :-1]], axis=1)
+    prob = np.mean(np.stack([final_act, final_act_shift]), axis=0)
+    mask = prob > 0.2
+    final_prob = np.zeros_like(prob)
+    final_prob[mask] = 1
+    print(final_prob)
+
+    data = np.array([[value for value in spk for _ in range(24)] for spk in final_prob])
+    index = [0.020 * (i + 1) for i in range(data.shape[1])]
+    df = pd.DataFrame(data=data.T, columns=["spk1", "spk2", "spk3"], index=index)
+    df.to_csv("diarization.csv", header=True, index=True)
+
+
+    spk1 = np.array([p == 1 for p in final_prob[0] for _ in range(int(sr * 0.480))])
+    spk2 = np.array([p == 1 for p in final_prob[1] for _ in range(int(sr * 0.480))])
+    spk1 = np.concatenate([np.array([final_prob[0][0] == 1] * int(sr * 0.480)), spk1])[:audio.shape[0]]
+    spk2 = np.concatenate([np.array([final_prob[1][0] == 1] * int(sr * 0.480)), spk2])[:audio.shape[0]]
+    audio1 = audio.copy()
+    audio1[~spk1] = 0
+    audio2 = audio.copy()
+    audio2[~spk2] = 0
+    sf.write("spk1.wav", audio1, samplerate=sr)
+    sf.write("spk2.wav", audio2, samplerate=sr)
+
+    plt.figure(figsize=(30, 4))
+    sns.lineplot(df)
+    plt.show()
